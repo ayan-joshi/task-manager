@@ -34,6 +34,7 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   attachments?: Attachment[];
+  owner?: User | null;
 }
 
 export interface ActivityLog {
@@ -80,6 +81,7 @@ export interface TaskFilters {
   status?: TaskStatus | '';
   priority?: TaskPriority | '';
   sort?: SortOption;
+  scope?: 'me' | 'all';
   page?: number;
   limit?: number;
 }

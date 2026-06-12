@@ -84,6 +84,9 @@ type Task struct {
 	UpdatedAt   time.Time  `json:"updatedAt"`
 
 	Attachments []Attachment `gorm:"constraint:OnDelete:CASCADE;" json:"attachments,omitempty"`
+	// Owner is populated only for admin "all tasks" listings so the UI can show
+	// whose task it is; omitted from normal owner-scoped responses.
+	Owner *User `gorm:"foreignKey:UserID" json:"owner,omitempty"`
 }
 
 // BeforeCreate assigns a UUID and applies enum defaults.

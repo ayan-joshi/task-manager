@@ -11,9 +11,11 @@ import (
 )
 
 // TaskFilter narrows a task query. A nil UserID means "all users" (admin scope).
+// IncludeOwner preloads each task's owner (used for admin all-task listings).
 type TaskFilter struct {
-	UserID *uuid.UUID
-	Query  dto.TaskQuery
+	UserID       *uuid.UUID
+	IncludeOwner bool
+	Query        dto.TaskQuery
 }
 
 // TaskRepository abstracts persistence for tasks.
@@ -83,8 +85,13 @@ func (r *taskRepository) List(filter TaskFilter) ([]domain.Task, int64, error) {
 		return nil, 0, err
 	}
 
+	find := base
+	if filter.IncludeOwner {
+		find = find.Preload("Owner")
+	}
+
 	var tasks []domain.Task
-	err := base.
+	err := find.
 		Order(sortClause(q.Sort)).
 		Offset(q.Offset()).
 		Limit(q.Limit).

@@ -31,6 +31,7 @@ function buildParams(filters: TaskFilters): Record<string, string | number> {
   if (filters.search) params.search = filters.search;
   if (filters.status) params.status = filters.status;
   if (filters.priority) params.priority = filters.priority;
+  if (filters.scope) params.scope = filters.scope;
   return params;
 }
 

@@ -52,11 +52,16 @@ type UpdateTaskRequest struct {
 }
 
 // TaskQuery captures filtering, search, sort, and pagination parameters.
+//
+// Scope controls ownership: the default ("me") returns only the caller's tasks,
+// even for admins, so the personal dashboard is never polluted with other users'
+// work. Scope "all" returns every user's tasks and is honored only for admins.
 type TaskQuery struct {
 	Search   string `form:"search"`
 	Status   string `form:"status" binding:"omitempty,oneof=TODO IN_PROGRESS COMPLETED"`
 	Priority string `form:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH"`
 	Sort     string `form:"sort" binding:"omitempty,oneof=due_date_asc due_date_desc priority_asc priority_desc created_asc created_desc title_asc title_desc"`
+	Scope    string `form:"scope" binding:"omitempty,oneof=me all"`
 	Page     int    `form:"page" binding:"omitempty,min=1"`
 	Limit    int    `form:"limit" binding:"omitempty,min=1,max=100"`
 }

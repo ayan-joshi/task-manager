@@ -83,6 +83,7 @@ Query parameters (all optional, all combinable):
 | `status` | enum | filter by status |
 | `priority` | enum | filter by priority |
 | `sort` | enum | `created_desc` (default), `created_asc`, `due_date_asc`, `due_date_desc`, `priority_asc`, `priority_desc`, `title_asc`, `title_desc` |
+| `scope` | enum | `me` (default) returns only your tasks. `all` returns every user's tasks **and** includes each task's `owner` — honored for `ADMIN` only; silently falls back to `me` for regular users. |
 | `page` | int | default `1` |
 | `limit` | int | default `10`, max `100` |
 

@@ -64,14 +64,21 @@ func (s *TaskService) GetByID(actorID uuid.UUID, role domain.Role, id uuid.UUID)
 	return task, nil
 }
 
-// List returns a filtered, paginated page of tasks. Non-admins are scoped to
-// their own tasks; admins may list across all users.
+// List returns a filtered, paginated page of tasks. By default everyone —
+// admins included — sees only their own tasks, so the personal board is never
+// mixed with other users' work. An admin may opt into a global view with
+// scope=all; for any non-admin that request silently falls back to own tasks.
 func (s *TaskService) List(actorID uuid.UUID, role domain.Role, q dto.TaskQuery) ([]domain.Task, dto.PageMeta, error) {
 	q.Normalize()
 	filter := repository.TaskFilter{Query: q}
-	if role != domain.RoleAdmin {
+
+	allScope := role == domain.RoleAdmin && q.Scope == "all"
+	if allScope {
+		filter.IncludeOwner = true
+	} else {
 		filter.UserID = &actorID
 	}
+
 	tasks, total, err := s.tasks.List(filter)
 	if err != nil {
 		return nil, dto.PageMeta{}, err
