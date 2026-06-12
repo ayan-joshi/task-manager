@@ -3,8 +3,10 @@ package database
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -12,14 +14,25 @@ import (
 	"taskmanager/internal/domain"
 )
 
-// Connect opens a PostgreSQL connection pool and verifies connectivity.
+// Connect opens a database connection pool and verifies connectivity.
+//
+// The driver is selected from the DSN: anything beginning with "file:" or
+// "sqlite:" (or ending in .db) uses the pure-Go SQLite driver, which is handy
+// for zero-dependency local development. Everything else uses PostgreSQL, the
+// production database. The domain models are written to work on both.
 func Connect(dsn string, production bool) (*gorm.DB, error) {
 	logLevel := logger.Info
 	if production {
 		logLevel = logger.Warn
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	dialector := postgres.Open(dsn)
+	usingSQLite := isSQLiteDSN(dsn)
+	if usingSQLite {
+		dialector = sqlite.Open(dsn)
+	}
+
+	db, err := gorm.Open(dialector, &gorm.Config{
 		Logger:                 logger.Default.LogMode(logLevel),
 		SkipDefaultTransaction: true,
 	})
@@ -31,14 +44,28 @@ func Connect(dsn string, production bool) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("access sql.DB: %w", err)
 	}
-	sqlDB.SetMaxOpenConns(25)
-	sqlDB.SetMaxIdleConns(5)
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	if usingSQLite {
+		// SQLite permits a single writer; a single connection avoids
+		// "database is locked" errors under concurrent requests.
+		sqlDB.SetMaxOpenConns(1)
+	} else {
+		sqlDB.SetMaxOpenConns(25)
+		sqlDB.SetMaxIdleConns(5)
+		sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	}
 
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 	return db, nil
+}
+
+// isSQLiteDSN reports whether the DSN should be served by the SQLite driver.
+func isSQLiteDSN(dsn string) bool {
+	lower := strings.ToLower(dsn)
+	return strings.HasPrefix(lower, "file:") ||
+		strings.HasPrefix(lower, "sqlite:") ||
+		strings.HasSuffix(strings.SplitN(lower, "?", 2)[0], ".db")
 }
 
 // Migrate runs GORM auto-migration for every domain model. Auto-migration is
