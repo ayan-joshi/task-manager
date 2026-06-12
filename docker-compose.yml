@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskmanager-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskmanager
+      POSTGRES_PASSWORD: taskmanager
+      POSTGRES_DB: taskmanager
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U taskmanager -d taskmanager']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./apps/backend
+    container_name: taskmanager-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://taskmanager:taskmanager@postgres:5432/taskmanager?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-me}
+      JWT_EXPIRY_HOURS: '72'
+      PORT: '8080'
+      ALLOWED_ORIGINS: http://localhost:3000
+      ENVIRONMENT: production
+      SEED_ADMIN_NAME: Administrator
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-admin12345}
+    ports:
+      - '8080:8080'
+    volumes:
+      - backend-uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      args:
+        # Baked into the client bundle; the browser talks to the host-mapped port.
+        NEXT_PUBLIC_API_URL: http://localhost:8080/api
+    container_name: taskmanager-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '3000:3000'
+
+volumes:
+  postgres-data:
+  backend-uploads:
