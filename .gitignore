@@ -1,0 +1,24 @@
+# Environment
+.env
+.env.local
+*.env.local
+
+# Backend (Go)
+apps/backend/server
+apps/backend/server.exe
+apps/backend/uploads/*
+!apps/backend/uploads/.gitkeep
+apps/backend/tmp/
+
+# Frontend (Node / Next.js)
+node_modules/
+apps/frontend/.next/
+apps/frontend/out/
+apps/frontend/coverage/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
